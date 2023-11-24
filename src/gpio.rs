@@ -869,6 +869,7 @@ impl<'d, T: Pin, MODE> PinDriver<'d, T, MODE> {
         let pin = unsafe { self.pin.clone_unchecked() };
 
         gpio_reset_without_pull(pin.pin())?;
+        core::mem::forget(self);
 
         #[cfg(all(
             not(feature = "riscv-ulp-hal"),
