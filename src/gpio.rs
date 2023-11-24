@@ -845,7 +845,7 @@ impl<'d, T: Pin, MODE> PinDriver<'d, T, MODE> {
     {
         let pin = unsafe { self.pin.clone_unchecked() };
 
-        drop(self);
+        gpio_reset_without_pull(pin.pin())?;
 
         if mode != gpio_mode_t_GPIO_MODE_DISABLE {
             esp!(unsafe { gpio_set_direction(pin.pin(), mode) })?;
@@ -868,7 +868,7 @@ impl<'d, T: Pin, MODE> PinDriver<'d, T, MODE> {
     {
         let pin = unsafe { self.pin.clone_unchecked() };
 
-        drop(self);
+        gpio_reset_without_pull(pin.pin())?;
 
         #[cfg(all(
             not(feature = "riscv-ulp-hal"),
@@ -1562,6 +1562,31 @@ unsafe fn reset_pin(_pin: i32, _mode: gpio_mode_t) -> Result<(), EspError> {
 
         esp!(gpio_reset_pin(_pin))?;
         esp!(gpio_set_direction(_pin, _mode))?;
+
+        Ok(())
+    };
+
+    #[cfg(feature = "riscv-ulp-hal")]
+    let res = Ok(());
+
+    res
+}
+
+#[inline]
+fn gpio_reset_without_pull(gpio_num: gpio_num_t) -> Result<(), EspError> {
+    #[cfg(not(feature = "riscv-ulp-hal"))]
+    let res = unsafe {
+        let cfg = gpio_config_t {
+            pin_bit_mask: (1u64 << gpio_num),
+            mode: esp_idf_sys::gpio_mode_t_GPIO_MODE_DISABLE,
+            pull_up_en: esp_idf_sys::gpio_pullup_t_GPIO_PULLUP_DISABLE,
+            pull_down_en: esp_idf_sys::gpio_pulldown_t_GPIO_PULLDOWN_DISABLE,
+            intr_type: esp_idf_sys::gpio_int_type_t_GPIO_INTR_DISABLE,
+        };
+
+        unsubscribe_pin(gpio_num)?;
+        esp!(gpio_config(&cfg))?;
+        esp!(gpio_set_direction(gpio_num, gpio_mode_t_GPIO_MODE_DISABLE))?;
 
         Ok(())
     };
