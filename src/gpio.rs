@@ -1573,20 +1573,20 @@ unsafe fn reset_pin(_pin: i32, _mode: gpio_mode_t) -> Result<(), EspError> {
 }
 
 #[inline]
-fn gpio_reset_without_pull(gpio_num: gpio_num_t) -> Result<(), EspError> {
+fn gpio_reset_without_pull(_pin: i32) -> Result<(), EspError> {
     #[cfg(not(feature = "riscv-ulp-hal"))]
     let res = unsafe {
         let cfg = gpio_config_t {
-            pin_bit_mask: (1u64 << gpio_num),
+            pin_bit_mask: (1u64 << _pin),
             mode: esp_idf_sys::gpio_mode_t_GPIO_MODE_DISABLE,
             pull_up_en: esp_idf_sys::gpio_pullup_t_GPIO_PULLUP_DISABLE,
             pull_down_en: esp_idf_sys::gpio_pulldown_t_GPIO_PULLDOWN_DISABLE,
             intr_type: esp_idf_sys::gpio_int_type_t_GPIO_INTR_DISABLE,
         };
 
-        unsubscribe_pin(gpio_num)?;
+        unsubscribe_pin(_pin)?;
         esp!(gpio_config(&cfg))?;
-        esp!(gpio_set_direction(gpio_num, gpio_mode_t_GPIO_MODE_DISABLE))?;
+        esp!(gpio_set_direction(_pin, gpio_mode_t_GPIO_MODE_DISABLE))?;
 
         Ok(())
     };
