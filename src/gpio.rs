@@ -847,8 +847,12 @@ impl<'d, T: Pin, MODE> PinDriver<'d, T, MODE> {
         gpio_reset_without_pull(pin.pin())?;
         core::mem::forget(self);
 
+        if mode != gpio_mode_t_GPIO_MODE_DISABLE {
+            esp!(unsafe { gpio_set_direction(pin.pin(), mode) })?;
+        }
+
         Ok(PinDriver {
-            pin: pin,
+            pin,
             _mode: PhantomData,
         })
     }
